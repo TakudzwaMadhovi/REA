@@ -1,0 +1,14 @@
+{
+  "name": "rea-relay",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Optional push relay for Rea: sends reminder notifications while the app is closed.",
+  "scripts": {
+    "start": "node server.js",
+    "keys": "node keys.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": { "web-push": "3.6.7" }
+}
