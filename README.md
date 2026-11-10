@@ -39,6 +39,18 @@ Open `http://localhost:4173/?demo` to load example data. This only happens when 
 
 To install it on your phone, open the deployed site and use **Add to Home Screen** (iPhone: Share, then Add to Home Screen). Any static host works for the `app/dist` folder: Vercel, Netlify, Cloudflare Pages or GitHub Pages.
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request and every push to `main`:
+
+| Job | Checks |
+|---|---|
+| App | Type check, unit tests, production build |
+| Push relay | Relay unit tests |
+| Browser tests | Desktop flows, plus the same flows on emulated iPhone 15, iPhone SE (3rd gen) and iPhone 13 mini, in Chromium |
+
+You can see the results in each pull request's **Checks** tab. Real Safari and Home Screen behaviour still needs the iPhone checklist below.
+
 ## On iPhone
 
 Rea is built phone-first for iPhone. On a phone you get:

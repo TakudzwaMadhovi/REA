@@ -1,20 +1,21 @@
 const { chromium } = require('playwright');
+const BASE = process.env.BASE || 'http://localhost:4173';
 const ok = (c, m) => { if (!c) { console.log('FAIL', m); process.exitCode = 1; } else console.log('ok  ', m); };
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
-  await ctx.grantPermissions(['notifications'], { origin: 'http://localhost:4173' });
+  await ctx.grantPermissions(['notifications'], { origin: BASE });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-  await p.goto('http://localhost:4173/#/today'); await p.waitForTimeout(800);
+  await p.goto(BASE + '/#/today'); await p.waitForTimeout(800);
 
   // capture with N, triage to task for today
   await p.keyboard.press('n');
   await p.fill('#cap', 'Buy stamps'); await p.keyboard.press('Enter'); await p.keyboard.press('Escape');
-  await p.goto('http://localhost:4173/#/inbox'); await p.waitForTimeout(300);
+  await p.goto(BASE + '/#/inbox'); await p.waitForTimeout(300);
   ok(await p.getByText('Buy stamps').isVisible(), 'captured thought is in inbox');
   await p.getByRole('button', { name: 'Do today' }).first().click(); await p.waitForTimeout(700);
-  await p.goto('http://localhost:4173/#/today'); await p.waitForTimeout(400);
+  await p.goto(BASE + '/#/today'); await p.waitForTimeout(400);
   ok((await p.locator('.now-title').textContent()) === 'Buy stamps', 'triaged task is the one thing now');
 
   // focus timer
@@ -25,20 +26,20 @@ const ok = (c, m) => { if (!c) { console.log('FAIL', m); process.exitCode = 1; }
   await p.getByRole('button', { name: 'Pause' }).click();
 
   // calendar event
-  await p.goto('http://localhost:4173/#/calendar'); await p.waitForTimeout(300);
+  await p.goto(BASE + '/#/calendar'); await p.waitForTimeout(300);
   await p.getByRole('button', { name: 'New event' }).click();
   await p.getByLabel('What is it?').fill('Dentist');
   await p.getByRole('button', { name: 'Add event', exact: true }).click(); await p.waitForTimeout(300);
   ok(await p.locator('.week-ev', { hasText: 'Dentist' }).count() === 1, 'event shows in week view');
 
   // routine
-  await p.goto('http://localhost:4173/#/routines'); await p.waitForTimeout(300);
+  await p.goto(BASE + '/#/routines'); await p.waitForTimeout(300);
   await p.getByRole('button', { name: 'Add a morning routine' }).click(); await p.waitForTimeout(300);
   await p.getByRole('checkbox', { name: 'Drink a glass of water' }).click(); await p.waitForTimeout(200);
   ok(await p.getByText('1 of 3 done today').isVisible(), 'routine step ticks');
 
   // task editor: slide-over focus trap + Esc restores focus
-  await p.goto('http://localhost:4173/#/tasks'); await p.waitForTimeout(300);
+  await p.goto(BASE + '/#/tasks'); await p.waitForTimeout(300);
   const opener = p.locator('.item button.title', { hasText: 'Buy stamps' });
   await opener.click(); await p.waitForTimeout(300);
   ok(await p.evaluate(() => document.activeElement?.closest('[role=dialog]') != null), 'focus moves into slide-over');
@@ -47,18 +48,18 @@ const ok = (c, m) => { if (!c) { console.log('FAIL', m); process.exitCode = 1; }
 
   // persistence
   await p.reload(); await p.waitForTimeout(800);
-  await p.goto('http://localhost:4173/#/today'); await p.waitForTimeout(400);
+  await p.goto(BASE + '/#/today'); await p.waitForTimeout(400);
   ok((await p.locator('.now-title').textContent()) === 'Buy stamps', 'data survives reload');
 
   // delete confirm names the item
-  await p.goto('http://localhost:4173/#/inbox');
+  await p.goto(BASE + '/#/inbox');
   await p.fill('#inbox-add', 'Temp thought'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
   await p.getByRole('button', { name: 'Delete “Temp thought”' }).click();
   ok(await p.getByText('Delete “Temp thought”?').isVisible(), 'delete confirmation names the item');
   await p.getByRole('button', { name: 'Delete thought' }).click();
 
   // relay connect
-  await p.goto('http://localhost:4173/#/settings'); await p.waitForTimeout(300);
+  await p.goto(BASE + '/#/settings'); await p.waitForTimeout(300);
   await p.getByLabel(/Push relay address/).fill('http://localhost:8787');
   await p.getByRole('button', { name: 'Connect relay' }).click(); await p.waitForTimeout(4000);
   const relayText = await p.locator('section[aria-label="Notifications"]').innerText();
