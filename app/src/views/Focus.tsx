@@ -9,6 +9,7 @@ import { TimeDisc, useNow } from '../components/TimeDisc';
 import { Empty, Tick, useToast } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useEditors } from '../App';
+import { useWakeLock } from '../lib/platform';
 import { saveTask, setDone } from '../components/TaskEditor';
 
 interface Timer { taskId: string | null; mode: 'focus' | 'break'; lengthMs: number; endsAt: number | null; pausedLeft: number | null }
@@ -43,6 +44,7 @@ export function Focus({ taskId }: { taskId: string | null }) {
 
   const len = timer?.lengthMs ?? defaultLen * 60_000;
   const running = Boolean(timer?.endsAt);
+  useWakeLock(running);
   const left = timer?.endsAt ? timer.endsAt - now : timer?.pausedLeft ?? len;
   const frac = Math.max(0, left) / len;
 
@@ -106,9 +108,9 @@ export function Focus({ taskId }: { taskId: string | null }) {
 
         <div className="row">
           {running ? (
-            <button className="btn primary" onClick={pause}><Icon name="pause" size={18} /> Pause</button>
+            <button className="btn primary focus-start" onClick={pause}><Icon name="pause" size={18} /> Pause</button>
           ) : (
-            <button className="btn primary" onClick={() => start()}><Icon name="play" size={18} /> {timer?.pausedLeft ? 'Resume' : `Start ${Math.round(len / 60_000)} min`}</button>
+            <button className="btn primary focus-start" onClick={() => start()}><Icon name="play" size={18} /> {timer?.pausedLeft ? 'Resume' : `Start ${Math.round(len / 60_000)} min`}</button>
           )}
           <div className="seg" role="group" aria-label="Timer length">
             {LENGTHS.map((m) => (

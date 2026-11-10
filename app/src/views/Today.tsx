@@ -10,6 +10,8 @@ import { Empty, Tick, useToast } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useEditors } from '../App';
 import { setDone } from '../components/TaskEditor';
+import { SwipeRow } from '../components/SwipeRow';
+import { InstallGuide } from '../components/InstallGuide';
 
 export function Today() {
   const now = useNow(30_000);
@@ -47,6 +49,10 @@ export function Today() {
       setLeaving(null);
       toast({ title: `Done: ${t.title}`, actions: [{ label: 'Undo', run: () => setDone({ ...t, done: true }, false) }] });
     }, 320);
+  };
+  const doneNow = async (t: Task) => {
+    await setDone(t, true);
+    toast({ title: `Done: ${t.title}`, actions: [{ label: 'Undo', run: () => setDone({ ...t, done: true }, false) }] });
   };
   const notToday = async (t: Task) => {
     await db.tasks.update(t.id, { due: dayKey(addDays(new Date(), 1)) });
@@ -116,6 +122,16 @@ export function Today() {
           )}
         </section>
 
+        <section className="panel s12 dayrow" aria-label="Time left today">
+          <TimeDisc frac={dayFrac} label={`${duration(dayLeft)} left before ${bed}`} />
+          <div>
+            <p style={{ fontSize: 22 }} className="num">{dayLeft > 0 ? `${duration(dayLeft)} left` : 'Day done'}</p>
+            <p className="small muted">The yellow shrinks until bedtime at {bed}.</p>
+          </div>
+        </section>
+
+        <InstallGuide className="s12" />
+
         <section className="panel s3 daybox" aria-labelledby="day-h">
           <h2 id="day-h" style={{ fontWeight: 400, fontSize: 16 }} className="muted">Time left today</h2>
           <TimeDisc frac={dayFrac} label={`${duration(dayLeft)} left before ${bed}`} />
@@ -163,13 +179,15 @@ export function Today() {
           {rest.length ? (
             <ul className="rows">
               {rest.slice(0, 6).map((t) => (
-                <li key={t.id} className={`item${leaving === t.id ? ' leaving' : ''}`}>
-                  <Tick checked={leaving === t.id} label={`Mark ${t.title} done`} onToggle={() => complete(t)} />
-                  <span className="grow">
-                    <button className="title" onClick={() => openTask(t)}>{t.title}</button>
-                    <span className="meta">{t.estimateMin} min{t.dueTime ? `, ${t.dueTime}` : ''}{t.due! < today ? `, from ${dayLabel(t.due!)}` : ''}</span>
-                  </span>
-                </li>
+                <SwipeRow key={t.id} onDone={() => doneNow(t)} onLater={() => notToday(t)}>
+                  <div className={`item${leaving === t.id ? ' leaving' : ''}`}>
+                    <Tick checked={leaving === t.id} label={`Mark ${t.title} done`} onToggle={() => complete(t)} />
+                    <span className="grow">
+                      <button className="title" onClick={() => openTask(t)}>{t.title}</button>
+                      <span className="meta">{t.estimateMin} min{t.dueTime ? `, ${t.dueTime}` : ''}{t.due! < today ? `, from ${dayLabel(t.due!).toLowerCase()}` : ''}</span>
+                    </span>
+                  </div>
+                </SwipeRow>
               ))}
             </ul>
           ) : (

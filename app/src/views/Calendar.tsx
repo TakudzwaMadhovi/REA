@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useIsPhone } from '../lib/platform';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addDays, addMonths, endOfMonth, endOfWeek, format, isSameMonth, isWeekend, startOfMonth, startOfWeek } from 'date-fns';
 import { db, uid, type CalEvent } from '../db';
@@ -17,7 +18,9 @@ export function blankEvent(start: Date): CalEvent {
 
 export function Calendar() {
   const now = useNow(60_000);
-  const [mode, setMode] = useState<'month' | 'week'>(() => (window.innerWidth < 700 ? 'month' : 'week'));
+  const [mode, setMode] = useState<'month' | 'week'>('week');
+  const phone = useIsPhone();
+  const swipeX = useRef<number | null>(null);
   const [cursor, setCursor] = useState(new Date());
   const [selected, setSelected] = useState(dayKey());
   const events = useLiveQuery(() => db.events.toArray(), []) ?? [];
@@ -33,7 +36,11 @@ export function Calendar() {
   const occ = occurrencesAll(events, range.from.getTime(), addDays(range.to, 1).getTime());
   const byDay = (d: Date) => occ.filter((o) => dayKey(o.start) === dayKey(d));
   const tasksOn = (d: Date) => tasks.filter((t) => t.due === dayKey(d));
-  const step = (n: number) => setCursor((c) => (mode === 'month' ? addMonths(c, n) : addDays(c, 7 * n)));
+  const step = (n: number) => {
+    setCursor((c) => (mode === 'month' ? addMonths(c, n) : addDays(c, 7 * n)));
+    // keep the selected day inside the week that is now on screen
+    if (mode === 'week') setSelected((s) => dayKey(addDays(new Date(s + 'T00:00'), 7 * n)));
+  };
   const title = mode === 'month' ? format(cursor, 'MMMM yyyy') : `${format(range.from, 'd MMM')} to ${format(range.to, 'd MMM yyyy')}`;
 
   const newAt = (d: Date, hour = 9) => { const s = new Date(d); s.setHours(hour, 0, 0, 0); openEvent(blankEvent(s), true); };
@@ -113,7 +120,28 @@ export function Calendar() {
           {agenda(selDate)}
         </>
       ) : (
-        <WeekGrid days={days} byDay={byDay} tasksOn={tasksOn} now={now} onSlot={newAt} onEvent={(e) => openEvent(e)} agenda={agenda} />
+        phone ? (
+          <>
+            <div className="daystrip" role="group" aria-label="Days this week"
+              onPointerDown={(e) => { swipeX.current = e.clientX; }}
+              onPointerUp={(e) => {
+                const dx = swipeX.current === null ? 0 : e.clientX - swipeX.current;
+                swipeX.current = null;
+                if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
+              }}>
+              {days.map((d) => {
+                const key = dayKey(d);
+                return (
+                  <button key={key} aria-pressed={selected === key} aria-label={format(d, 'EEEE d MMMM')} onClick={() => setSelected(key)}>
+                    <span>{format(d, 'EEEEE')}</span><b>{format(d, 'd')}</b>
+                    {byDay(d).length + tasksOn(d).length > 0 && <i className="dot" aria-hidden="true" />}
+                  </button>
+                );
+              })}
+            </div>
+            {agenda(selDate)}
+          </>
+        ) : <WeekGrid days={days} byDay={byDay} tasksOn={tasksOn} now={now} onSlot={newAt} onEvent={(e) => openEvent(e)} agenda={agenda} />
       )}
     </>
   );
@@ -124,7 +152,6 @@ function WeekGrid({ days, byDay, tasksOn, now, onSlot, onEvent, agenda }: {
   onSlot: (d: Date, h: number) => void; onEvent: (e: CalEvent) => void; agenda: (d: Date) => JSX.Element;
 }) {
   const hours = Array.from({ length: END_H - START_H }, (_, i) => START_H + i);
-  if (window.innerWidth < 700) return <>{days.map((d) => <div key={d.toISOString()}>{agenda(d)}</div>)}</>;
   return (
     <div className="panel" style={{ background: 'var(--ground)', padding: 0 }}>
       <div className="week-head">

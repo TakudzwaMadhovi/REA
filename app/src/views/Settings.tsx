@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { exportAll, getSetting, importAll, setSetting } from '../db';
 import { connectRelay, disconnectRelay, requestPermission } from '../lib/notify';
 import { useToast } from '../components/ui';
+import { InstallGuide } from '../components/InstallGuide';
 
 function Row({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
   return (
@@ -80,7 +81,8 @@ export function Settings() {
         </label>
       </Row>
 
-      <Row title="Notifications" desc="Reminders show as system notifications while Rea is open or in a background tab. To get them with Rea fully closed, connect a push relay below.">
+      <Row title="Notifications" desc="While Rea is on screen, reminders appear straight away. iPhone pauses web apps that are not on screen, so to get reminders at any other time, connect a push relay below. On iPhone this also needs Rea on the Home Screen.">
+        <InstallGuide always />
         <p>
           {perm === 'granted' && 'Notifications are on for this browser.'}
           {perm === 'denied' && 'Notifications are blocked. Allow them for this site in your browser’s site settings.'}

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, newTask, uid, type InboxItem } from '../db';
 import { ago, dayKey } from '../lib/time';
-import { Empty, useConfirm, useToast } from '../components/ui';
+import { Dialog, Empty, useConfirm, useToast } from '../components/ui';
+import { useIsPhone } from '../lib/platform';
 import { Icon } from '../components/Icon';
 import { useEditors } from '../App';
 import { saveTask } from '../components/TaskEditor';
@@ -19,6 +20,8 @@ export function Inbox() {
   const [confirm, confirmNode] = useConfirm();
   const [text, setText] = useState('');
   const [leaving, setLeaving] = useState<string | null>(null);
+  const [sorting, setSorting] = useState<InboxItem | null>(null);
+  const phone = useIsPhone();
 
   const out = (id: string, then: () => Promise<unknown>) => {
     setLeaving(id);
@@ -62,7 +65,7 @@ export function Inbox() {
 
       <form className="row" onSubmit={add} style={{ marginBottom: 24 }}>
         <label htmlFor="inbox-add" className="sr-only">Add to inbox</label>
-        <input id="inbox-add" className="input" style={{ flex: 1, minWidth: 200 }} value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a thought and press Enter" autoComplete="off" />
+        <input id="inbox-add" className="input" style={{ flex: 1, minWidth: 200 }} value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a thought" autoComplete="off" />
         <button className="btn" type="submit" disabled={!text.trim()}>Add to inbox</button>
       </form>
 
@@ -78,6 +81,12 @@ export function Inbox() {
                   <span className="title">{it.text}</span>
                   <span className="meta">{ago(it.createdAt)}</span>
                 </span>
+                {phone ? (
+                  <span className="row" style={{ gap: 6 }}>
+                    <button className="btn small primary" onClick={() => toTask(it, true)}>Do today</button>
+                    <button className="btn small" onClick={() => setSorting(it)}>Sort</button>
+                  </span>
+                ) : (
                 <span className="row" style={{ gap: 6 }}>
                   <button className="btn small primary" onClick={() => toTask(it, true)}>Do today</button>
                   <button className="btn small" onClick={() => toTask(it, false)}>Make a task</button>
@@ -87,11 +96,24 @@ export function Inbox() {
                     <Icon name="trash" size={18} />
                   </button>
                 </span>
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
+      {sorting && (
+        <Dialog label={`Sort “${sorting.text}”`} onClose={() => setSorting(null)}>
+          <p className="muted">Sort this thought</p>
+          <h2 style={{ fontSize: 20, marginTop: 4, overflowWrap: 'anywhere' }}>{sorting.text}</h2>
+          <div className="action-list" style={{ marginTop: 16 }}>
+            <button className="btn" onClick={() => { toTask(sorting, false); setSorting(null); }}>Make a task for later</button>
+            <button className="btn" onClick={() => { toEvent(sorting); setSorting(null); }}>Schedule it</button>
+            <button className="btn" onClick={() => { toGoal(sorting); setSorting(null); }}>Make it a goal</button>
+            <button className="btn quiet" style={{ color: 'var(--negative)' }} onClick={() => { const it = sorting; setSorting(null); confirm('thought', it.text, () => db.inbox.delete(it.id)); }}>Delete thought</button>
+          </div>
+        </Dialog>
+      )}
       {confirmNode}
     </>
   );

@@ -7,6 +7,8 @@ import { Empty, Tick, useToast } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useEditors } from '../App';
 import { saveTask, setDone } from '../components/TaskEditor';
+import { SwipeRow } from '../components/SwipeRow';
+import { addDays } from 'date-fns';
 
 type Group = { key: string; title: string; tasks: Task[] };
 
@@ -48,8 +50,20 @@ export function Tasks() {
     }, 320);
   };
 
-  const row = (t: Task) => (
-    <li key={t.id} className={`item${t.done ? ' done' : ''}${leaving === t.id ? ' leaving' : ''}`}>
+  const later = async (t: Task) => {
+    const prev = t.due;
+    await saveTask({ ...t, due: dayKey(addDays(new Date(), 1)) });
+    toast({ title: 'Moved to tomorrow', actions: [{ label: 'Undo', run: () => saveTask({ ...t, due: prev }) }] });
+  };
+  const swipeDone = async (t: Task) => {
+    await setDone(t, true);
+    toast({ title: `Done: ${t.title}`, actions: [{ label: 'Undo', run: () => setDone({ ...t, done: true }, false) }] });
+  };
+  const row = (t: Task) => t.done ? rowInner(t, 'li') : (
+    <SwipeRow key={t.id} onDone={() => swipeDone(t)} onLater={() => later(t)}>{rowInner(t, 'div')}</SwipeRow>
+  );
+  const rowInner = (t: Task, Tag: 'li' | 'div') => (
+    <Tag key={t.id} className={`item${t.done ? ' done' : ''}${leaving === t.id ? ' leaving' : ''}`}>
       <Tick checked={t.done || leaving === t.id} label={`Mark ${t.title} ${t.done ? 'not done' : 'done'}`} onToggle={() => toggle(t)} />
       <span className="grow">
         <button className="title" onClick={() => openTask(t)}>{t.title}</button>
@@ -64,7 +78,7 @@ export function Tasks() {
         </span>
       </span>
       {!t.done && <a className="icon-btn" href={`#/focus/${t.id}`} aria-label={`Focus on ${t.title}`} data-tip="Start focus"><Icon name="play" size={18} /></a>}
-    </li>
+    </Tag>
   );
 
   return (
@@ -83,7 +97,7 @@ export function Tasks() {
 
       <form className="row" onSubmit={add} style={{ marginBottom: 24 }}>
         <label htmlFor="quick-task" className="sr-only">Quick add a task for today</label>
-        <input id="quick-task" className="input" style={{ flex: 1, minWidth: 200 }} placeholder="Add a task for today and press Enter" value={title} onChange={(e) => setTitle(e.target.value)} autoComplete="off" />
+        <input id="quick-task" className="input" style={{ flex: 1, minWidth: 200 }} placeholder="Add a task for today" value={title} onChange={(e) => setTitle(e.target.value)} autoComplete="off" />
         <button className="btn" type="submit" disabled={!title.trim()}>Add for today</button>
       </form>
 

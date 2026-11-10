@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 4173",
     "test": "vitest run",
-    "e2e": "node scripts/e2e.cjs"
+    "e2e": "node scripts/e2e.cjs",
+    "e2e:mobile": "node scripts/mobile-e2e.cjs"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible-next": "5.2.6",

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
+import { useKeyboardInset } from '../lib/platform';
 
 /* ---------- toasts ---------- */
 export interface ToastAction { label: string; run: () => void }
@@ -50,8 +51,12 @@ function useTrap(onClose: () => void) {
     const onClose = () => closeRef.current();
     const prev = document.activeElement as HTMLElement | null;
     const el = ref.current!;
-    const first = el.querySelector<HTMLElement>('[data-autofocus]') ?? el.querySelector<HTMLElement>('input,textarea,select,button');
-    first?.focus();
+    // On touch screens, opening a sheet should not pop up the keyboard unless the sheet is for typing.
+    const touch = window.matchMedia?.('(pointer: coarse)').matches;
+    const first = touch
+      ? el.querySelector<HTMLElement>('[data-autofocus-touch]') ?? el
+      : el.querySelector<HTMLElement>('[data-autofocus]') ?? el.querySelector<HTMLElement>('input,textarea,select,button');
+    first?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
       if (e.key !== 'Tab') return;
@@ -72,12 +77,46 @@ function useTrap(onClose: () => void) {
   return ref;
 }
 
+/** Pull-down-to-close for bottom sheets. Returns handlers for the grab area. */
+function useDragClose(ref: React.RefObject<HTMLDivElement>, onClose: () => void) {
+  const start = useRef<{ y: number; t: number; last?: number } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+    start.current = { y: e.clientY, t: Date.now() };
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!start.current || !ref.current) return;
+    const dy = Math.max(0, e.clientY - start.current.y);
+    start.current.last = dy;
+    ref.current.style.transform = `translateY(${dy}px)`;
+    ref.current.style.transition = 'none';
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!start.current || !ref.current) return;
+    const dy = e.clientY - start.current.y;
+    const v = dy / Math.max(1, Date.now() - start.current.t);
+    start.current = null;
+    ref.current.style.transition = '';
+    if (shouldDragClose(dy, v, ref.current.offsetHeight)) onClose();
+    else ref.current.style.transform = '';
+  };
+  return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp };
+}
+
+/** Pure rule, unit-tested: close when pulled a quarter of the sheet down, or flicked fast. */
+export function shouldDragClose(dy: number, velocityPxPerMs: number, height: number) {
+  return dy >= Math.min(160, height * 0.25) || (dy > 30 && velocityPxPerMs > 0.6);
+}
+
 export function SlideOver({ title, onClose, children, footer }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   const ref = useTrap(onClose);
+  const drag = useDragClose(ref, onClose);
   return createPortal(
     <>
       <div className="scrim" onClick={onClose} />
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={title} ref={ref}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={title} ref={ref} tabIndex={-1}>
+        <div className="grab" {...drag} aria-hidden="true"><i /></div>
         <div className="sheet-head">
           <h2>{title}</h2>
           <button className="icon-btn" aria-label="Close" data-tip="Close (Esc)" onClick={onClose}><Icon name="close" /></button>
@@ -92,10 +131,15 @@ export function SlideOver({ title, onClose, children, footer }: { title: string;
 
 export function Dialog({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
   const ref = useTrap(onClose);
+  const drag = useDragClose(ref, onClose);
+  const lift = useKeyboardInset();
   return createPortal(
     <>
       <div className="scrim top" onClick={onClose} />
-      <div className="dialog" role="dialog" aria-modal="true" aria-label={label} ref={ref}>{children}</div>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label={label} ref={ref} tabIndex={-1} style={lift ? { bottom: lift } : undefined}>
+        <div className="grab" {...drag} aria-hidden="true"><i /></div>
+        {children}
+      </div>
     </>,
     document.body
   );

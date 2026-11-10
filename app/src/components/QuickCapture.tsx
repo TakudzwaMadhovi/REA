@@ -26,9 +26,9 @@ export function QuickCapture({ onClose }: { onClose: () => void }) {
     <Dialog label="Capture a thought" onClose={close}>
       <form onSubmit={(e) => { e.preventDefault(); save(); }}>
         <label htmlFor="cap" style={{ display: 'block', fontWeight: 600, marginBottom: 10 }}>What’s on your mind?</label>
-        <input id="cap" className="input capture-input" data-autofocus autoComplete="off" value={text} onChange={(e) => setText(e.target.value)} />
+        <input id="cap" className="input capture-input" data-autofocus data-autofocus-touch enterKeyHint="enter" autoComplete="off" value={text} onChange={(e) => setText(e.target.value)} />
         <p className="small muted" style={{ marginTop: 10 }} aria-live="polite">
-          {count ? `${count} saved. Keep going, or press Esc when your head is clear.` : 'Press Enter to save. Sort it later in Inbox.'}
+          {count ? `${count} saved. Keep going, or tap Done when your head is clear.` : 'Press return to save. Sort it later in Inbox.'}
         </p>
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 16 }}>
           <button type="button" className="btn quiet" onClick={close}>Done</button>

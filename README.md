@@ -32,11 +32,34 @@ npm run dev        # http://localhost:5173
 npm test           # unit tests: recurrence, picking the "one thing", reminders, triage
 npm run build && npm run preview   # production build on http://localhost:4173
 npm run e2e        # end-to-end check (needs the preview running)
+npm run e2e:mobile # iPhone 15 / SE / 13 mini emulation: swipes, sheets, tap sizes
 ```
 
 Open `http://localhost:4173/?demo` to load example data. This only happens when the app is empty.
 
 To install it on your phone, open the deployed site and use **Add to Home Screen** (iPhone: Share, then Add to Home Screen). Any static host works for the `app/dist` folder: Vercel, Netlify, Cloudflare Pages or GitHub Pages.
+
+## On iPhone
+
+Rea is built phone-first for iPhone. On a phone you get:
+- a bottom tab bar, with the capture button in the middle where your thumb reaches;
+- editing panels that slide up from the bottom (drag the handle down to close them);
+- swipe gestures on tasks: swipe right for done, left for tomorrow, with Undo;
+- a "Sort" sheet for inbox items;
+- a 7-day strip in Calendar.
+
+**Install it.** Open the site in Safari, then tap Share → **Add to Home Screen** → **Add**, and open Rea from its icon. iPhone needs this step for two reasons:
+- **Notifications.** Web push on iOS works only for Home Screen web apps (iOS 16.4+).
+- **Your data.** Safari can delete site data after 7 days without use, but Home Screen apps are exempt.
+
+**Reminders on iPhone.** iOS pauses web apps that are not on screen. While Rea is open, reminders appear at once. At any other time they need the push relay (see below), hosted somewhere that stays awake. iOS shows no buttons on web notifications, so tapping one opens Rea on a sheet with **Start it now**, **Mark done** and **Snooze 5 min / 15 min / 1 h**.
+
+**Check it on your phone.** These parts could only be tested in an emulator, not on a real iPhone:
+1. Safari shows the "Add Rea to your Home Screen" card; after installing, it disappears.
+2. From the Home Screen icon, Settings → Turn on notifications shows the iOS permission prompt.
+3. With the relay connected, lock the phone and set a reminder 2 minutes ahead: a notification arrives, and tapping it opens the reminder sheet.
+4. In Focus, start the timer: the screen stays on (iOS 18.4+ in Home Screen apps).
+5. Tap the + tab: the keyboard opens straight away.
 
 ## Reminders and notifications
 

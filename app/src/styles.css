@@ -402,3 +402,130 @@ a.kpi:hover { background: var(--surface-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+
+/* =========================================================
+   Phone-first layer (iPhone): sheets, touch targets, gestures
+   ========================================================= */
+html { -webkit-tap-highlight-color: transparent; }
+body { overscroll-behavior-y: none; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+button, a, .tick { touch-action: manipulation; }
+.grab { display: none; }
+/* iOS zooms into fields under 16px: keep every field at 16px or more */
+.input, select.input, textarea.input, input, select, textarea { font-size: max(16px, 1em); }
+
+@media (pointer: coarse) {
+  .btn, .btn.small { min-height: 44px; }
+  .seg button { min-height: 40px; }
+  .icon-btn { width: 44px; height: 44px; }
+  [data-tip]:hover::after, [data-tip]:focus-visible::after { display: none; }
+  .nav a { height: 48px; }
+}
+
+@media (max-width: 1023px) {
+  .topbar { height: 44px; padding-top: env(safe-area-inset-top); box-sizing: content-box; }
+  .main { padding-top: calc(8px + env(safe-area-inset-top)); }
+  .tabbar.hidden { display: none; }
+  .capture-fab.hidden { display: none; }
+
+  /* side panel becomes a bottom sheet */
+  .sheet {
+    top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 92dvh;
+    border-radius: 22px 22px 0 0; padding: 0 16px; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 -12px 40px rgb(0 0 0 / 0.2); /* taste-skill-ignore: overlay */
+    animation: sheet-up var(--t-slow) var(--ease);
+    transition: transform var(--t-mid) var(--ease);
+  }
+  .sheet-head { margin-bottom: 8px; }
+  .sheet-body { overflow-y: auto; flex: 1; padding-bottom: 20px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .sheet-foot {
+    margin: 0 -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--ground);
+    flex-wrap: nowrap; gap: 8px;
+  }
+  .sheet-foot > .row { flex: 1; justify-content: flex-end; flex-wrap: nowrap; }
+  .sheet-foot .btn { padding: 0 14px; }
+  .dialog {
+    top: auto; left: 0; right: 0; bottom: 0; transform: none; width: 100%; border-radius: 22px 22px 0 0;
+    padding: 0 16px calc(20px + env(safe-area-inset-bottom)); animation: sheet-up var(--t-slow) var(--ease);
+    transition: transform var(--t-mid) var(--ease), bottom var(--t-fast) linear;
+  }
+  .dialog .row { justify-content: stretch !important; }
+  .dialog .row .btn { flex: 1; }
+  .grab { display: grid; place-items: center; height: 28px; margin: 0 -16px 4px; cursor: grab; touch-action: none; }
+  .grab i { width: 40px; height: 5px; border-radius: 999px; background: var(--control); }
+}
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } }
+
+/* swipe rows */
+.swipe { position: relative; border-radius: var(--radius-row); overflow: hidden; touch-action: pan-y; }
+.swipe > div:last-child { position: relative; z-index: 1; will-change: transform; }
+.swipe .under {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+  font-weight: 600; color: #fff; border-radius: var(--radius-row);
+}
+.swipe .under.done { background: var(--accent); color: var(--accent-ink); }
+.swipe .under.later { background: var(--time); color: var(--time-ink); justify-content: flex-end; }
+.swipe .under .armed { transform: scale(1.1); }
+
+/* install guide */
+.install { display: grid; gap: 12px; }
+.install ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+
+/* compact time-left row on the phone */
+.dayrow { display: none; }
+@media (max-width: 1023px) {
+  .today-top .daybox { display: none; }
+  .dayrow { display: flex; align-items: center; gap: 16px; }
+  .dayrow svg { width: 72px; height: 72px; flex: none; }
+  .now .row .btn { flex: 1 1 100%; }
+  .now .row .btn.quiet { flex: 1 1 auto; }
+  .now-title { font-size: 26px; }
+  .greet-sub { font-size: 16px; }
+  .today-top { margin-top: 24px; }
+}
+
+/* focus on the phone: disc on top, one big button at thumb height */
+@media (max-width: 860px) {
+  .disc-wrap { width: min(72vw, 340px); }
+  .disc-read .big { font-size: 44px; }
+  .focus-start { width: 100%; min-height: 56px; font-size: 18px; }
+}
+
+/* calendar week strip */
+.daystrip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 8px; touch-action: pan-y; }
+.daystrip button {
+  border: 0; background: var(--surface); border-radius: 14px; min-height: 64px; display: grid; place-content: center; gap: 2px;
+  color: var(--muted); font-size: 13px; cursor: pointer; position: relative;
+}
+.daystrip button b { color: var(--text); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.daystrip button[aria-pressed='true'] { background: var(--text); color: var(--ground); }
+.daystrip button[aria-pressed='true'] b { color: var(--ground); }
+.daystrip button .dot { position: absolute; bottom: 6px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 999px; background: var(--accent); }
+
+/* action sheet list */
+.action-list { display: grid; gap: 8px; }
+.action-list .btn { width: 100%; justify-content: flex-start; min-height: 52px; }
+
+/* larger hit areas for row titles on touch screens, without moving the layout */
+@media (pointer: coarse) {
+  .item button.title { padding: 10px 0; margin: -10px 0; }
+}
+@media (max-width: 1023px) {
+  .daystrip { gap: 2px; margin-left: -8px; margin-right: -8px; }
+}
+
+/* centre capture tab: the brain-dump button sits in the thumb zone */
+.tab-capture span {
+  display: grid; place-items: center; width: 52px; height: 52px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink);
+  transition: transform var(--t-fast) var(--ease);
+}
+.tabbar .tab-capture:active span { transform: scale(0.94); }
+@media (max-width: 1023px) {
+  .sheet .seg { display: grid; grid-template-columns: 1fr 1fr; border-radius: 16px; }
+  .sheet .seg button { border-radius: 12px; }
+}
+@media (max-width: 1023px) {
+  .page-head { margin-bottom: 20px; }
+  .page-head > .row { width: 100%; }
+  .page-head > .row > .input, .page-head > .row > input { flex: 1; width: auto !important; min-width: 0; }
+}
